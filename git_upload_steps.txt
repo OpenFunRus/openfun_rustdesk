@@ -1,0 +1,23 @@
+﻿# ========================================
+# РџРѕС€Р°РіРѕРІР°СЏ РёРЅСЃС‚СЂСѓРєС†РёСЏ РґР»СЏ Git
+# ========================================
+
+# РЁРђР“ 1: РџСЂРѕРІРµСЂСЊ С‚РµРєСѓС‰РёР№ СЃС‚Р°С‚СѓСЃ
+git status
+
+# РЁРђР“ 2: Р”РѕР±Р°РІСЊ РІСЃРµ РёР·РјРµРЅС‘РЅРЅС‹Рµ С„Р°Р№Р»С‹
+git add src/ipc.rs
+git add src/common.rs
+git add src/ui/index.tis
+git add src/ui/index.css
+git add .github/workflows/build-x86-sciter-only.yml
+git add РљРђРЎРўРћРњРР—РђР¦РРЇ.md
+
+# РЁРђР“ 3: РџСЂРѕРІРµСЂСЊ С‡С‚Рѕ С„Р°Р№Р»С‹ РґРѕР±Р°РІР»РµРЅС‹
+git status
+
+# РЁРђР“ 4: РЎРґРµР»Р°Р№ commit
+git commit -m "рџ”’ Security: Block server/key/password saving + Minimalist UI + ENV priority"
+
+# РЁРђР“ 5: РћС‚РїСЂР°РІСЊ РЅР° GitHub
+git push origin master
