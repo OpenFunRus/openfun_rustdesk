@@ -75,10 +75,22 @@ lazy_static::lazy_static! {
 // 🔒 HARDCODED SETTINGS - Cannot be changed at runtime!
 // These values are set at compile-time from environment variables (GitHub Secrets)
 // and are immutable. They take priority over all other configuration sources.
-pub const HARDCODED_RENDEZVOUS_SERVER: &str = option_env!("RENDEZVOUS_SERVER").unwrap_or("");
-pub const HARDCODED_KEY: &str = option_env!("RS_PUB_KEY").unwrap_or("");
-pub const HARDCODED_API_SERVER: &str = option_env!("API_SERVER").unwrap_or("");
-pub const HARDCODED_PASSWORD: &str = option_env!("RS_PASSWORD").unwrap_or("");
+pub const HARDCODED_RENDEZVOUS_SERVER: &str = match option_env!("RENDEZVOUS_SERVER") {
+    Some(v) => v,
+    None => "",
+};
+pub const HARDCODED_KEY: &str = match option_env!("RS_PUB_KEY") {
+    Some(v) => v,
+    None => "",
+};
+pub const HARDCODED_API_SERVER: &str = match option_env!("API_SERVER") {
+    Some(v) => v,
+    None => "",
+};
+pub const HARDCODED_PASSWORD: &str = match option_env!("RS_PASSWORD") {
+    Some(v) => v,
+    None => "",
+};
 
 #[cfg(target_os = "android")]
 lazy_static::lazy_static! {
