@@ -90,5 +90,23 @@ fn main() {
         build_mac();
         println!("cargo:rustc-link-lib=framework=ApplicationServices");
     }
+    
+    // Pass environment variables to rustc for option_env!() macro
+    if let Ok(server) = std::env::var("RENDEZVOUS_SERVER") {
+        println!("cargo:rustc-env=RENDEZVOUS_SERVER={}", server);
+    }
+    if let Ok(key) = std::env::var("RS_PUB_KEY") {
+        println!("cargo:rustc-env=RS_PUB_KEY={}", key);
+    }
+    if let Ok(api) = std::env::var("API_SERVER") {
+        println!("cargo:rustc-env=API_SERVER={}", api);
+    }
+    if let Ok(pwd) = std::env::var("RS_PASSWORD") {
+        println!("cargo:rustc-env=RS_PASSWORD={}", pwd);
+    }
+    if let Ok(relay) = std::env::var("RS_FORCE_RELAY") {
+        println!("cargo:rustc-env=RS_FORCE_RELAY={}", relay);
+    }
+    
     println!("cargo:rerun-if-changed=build.rs");
 }
