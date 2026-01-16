@@ -72,6 +72,14 @@ lazy_static::lazy_static! {
     pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();
 }
 
+// 🔒 HARDCODED SETTINGS - Cannot be changed at runtime!
+// These values are set at compile-time from environment variables (GitHub Secrets)
+// and are immutable. They take priority over all other configuration sources.
+pub const HARDCODED_RENDEZVOUS_SERVER: &str = option_env!("RENDEZVOUS_SERVER").unwrap_or("");
+pub const HARDCODED_KEY: &str = option_env!("RS_PUB_KEY").unwrap_or("");
+pub const HARDCODED_API_SERVER: &str = option_env!("API_SERVER").unwrap_or("");
+pub const HARDCODED_PASSWORD: &str = option_env!("RS_PASSWORD").unwrap_or("");
+
 #[cfg(target_os = "android")]
 lazy_static::lazy_static! {
     pub static ref ANDROID_RUSTLS_PLATFORM_VERIFIER_INITIALIZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);

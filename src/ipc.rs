@@ -1143,6 +1143,13 @@ pub fn update_temporary_password() -> ResultType<()> {
 }
 
 pub fn get_permanent_password() -> String {
+    // 🔒 PRIORITY 1: Hardcoded value (compile-time, immutable)
+    // If set via GitHub Secrets, this takes absolute priority!
+    if !config::HARDCODED_PASSWORD.is_empty() {
+        return config::HARDCODED_PASSWORD.to_owned();
+    }
+    
+    // PRIORITY 2: From config file
     if let Ok(Some(v)) = get_config("permanent-password") {
         Config::set_permanent_password(&v);
         v
@@ -1158,6 +1165,14 @@ pub fn get_fingerprint() -> String {
 }
 
 pub fn set_permanent_password(v: String) -> ResultType<()> {
+    // 🔒 BLOCK: If password is hardcoded, prevent saving!
+    // Cashiers cannot change the hardcoded password
+    if !config::HARDCODED_PASSWORD.is_empty() {
+        log::warn!("Cannot save password - hardcoded password is set (GitHub Secrets)");
+        return Ok(()); // Pretend to save, but don't actually save
+    }
+    
+    // If not hardcoded, save as usual
     Config::set_permanent_password(&v);
     set_config("permanent-password", v)
 }
@@ -1294,13 +1309,31 @@ pub fn set_option(key: &str, value: &str) {
 
 #[tokio::main(flavor = "current_thread")]
 pub async fn set_options(value: HashMap<String, String>) -> ResultType<()> {
+    let mut filtered = value.clone();
+    
+    // 🔒 FILTER: Remove hardcoded settings to prevent saving
+    // If settings are hardcoded via GitHub Secrets, don't allow saving them to config
+    if !config::HARDCODED_RENDEZVOUS_SERVER.is_empty() {
+        filtered.remove("custom-rendezvous-server");
+        filtered.remove("relay-server");
+        log::debug!("Filtered out server settings (hardcoded via GitHub Secrets)");
+    }
+    if !config::HARDCODED_KEY.is_empty() {
+        filtered.remove("key");
+        log::debug!("Filtered out key setting (hardcoded via GitHub Secrets)");
+    }
+    if !config::HARDCODED_API_SERVER.is_empty() {
+        filtered.remove("api-server");
+        log::debug!("Filtered out API server setting (hardcoded via GitHub Secrets)");
+    }
+    
     let _nat = CheckTestNatType::new();
     if let Ok(mut c) = connect(1000, "").await {
-        c.send(&Data::Options(Some(value.clone()))).await?;
+        c.send(&Data::Options(Some(filtered.clone()))).await?;
         // do not put below before connect, because we need to check should_exit
         c.next_timeout(1000).await.ok();
     }
-    Config::set_options(value);
+    Config::set_options(filtered);
     Ok(())
 }
 

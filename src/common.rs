@@ -1029,18 +1029,30 @@ pub fn is_setup(name: &str) -> bool {
 }
 
 pub fn get_custom_rendezvous_server(custom: String) -> String {
+    // 🔒 PRIORITY 1: Hardcoded value (compile-time, immutable)
+    // If set via GitHub Secrets, this takes absolute priority!
+    if !config::HARDCODED_RENDEZVOUS_SERVER.is_empty() {
+        return config::HARDCODED_RENDEZVOUS_SERVER.to_owned();
+    }
+    
+    // PRIORITY 2: EXE name (Windows license)
     #[cfg(windows)]
     if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
         if !lic.host.is_empty() {
             return lic.host.clone();
         }
     }
+    
+    // PRIORITY 3: Custom value from .toml
     if !custom.is_empty() {
         return custom;
     }
+    
+    // PRIORITY 4: Legacy PROD_RENDEZVOUS_SERVER (deprecated)
     if !config::PROD_RENDEZVOUS_SERVER.read().unwrap().is_empty() {
         return config::PROD_RENDEZVOUS_SERVER.read().unwrap().clone();
     }
+    
     "".to_owned()
 }
 
@@ -1063,19 +1075,32 @@ pub fn get_api_server(api: String, custom: String) -> String {
 }
 
 fn get_api_server_(api: String, custom: String) -> String {
+    // 🔒 PRIORITY 1: Hardcoded value (compile-time, immutable)
+    // If set via GitHub Secrets, this takes absolute priority!
+    if !config::HARDCODED_API_SERVER.is_empty() {
+        return config::HARDCODED_API_SERVER.to_owned();
+    }
+    
+    // PRIORITY 2: EXE name (Windows license)
     #[cfg(windows)]
     if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
         if !lic.api.is_empty() {
             return lic.api.clone();
         }
     }
+    
+    // PRIORITY 3: API parameter
     if !api.is_empty() {
         return api.to_owned();
     }
+    
+    // PRIORITY 4: Legacy option_env! (deprecated)
     let api = option_env!("API_SERVER").unwrap_or_default();
     if !api.is_empty() {
         return api.into();
     }
+    
+    // PRIORITY 5: Derive from custom server
     let s0 = get_custom_rendezvous_server(custom);
     if !s0.is_empty() {
         let s = crate::increase_port(&s0, -2);
@@ -1085,6 +1110,7 @@ fn get_api_server_(api: String, custom: String) -> String {
             return format!("http://{}", s);
         }
     }
+    
     "https://admin.rustdesk.com".to_owned()
 }
 
@@ -1518,12 +1544,21 @@ pub fn decode64<T: AsRef<[u8]>>(input: T) -> Result<Vec<u8>, base64::DecodeError
 }
 
 pub async fn get_key(sync: bool) -> String {
+    // 🔒 PRIORITY 1: Hardcoded value (compile-time, immutable)
+    // If set via GitHub Secrets, this takes absolute priority!
+    if !config::HARDCODED_KEY.is_empty() {
+        return config::HARDCODED_KEY.to_owned();
+    }
+    
+    // PRIORITY 2: EXE name (Windows license)
     #[cfg(windows)]
     if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
         if !lic.key.is_empty() {
             return lic.key;
         }
     }
+    
+    // PRIORITY 3: Custom value from .toml
     #[cfg(target_os = "ios")]
     let mut key = Config::get_option("key");
     #[cfg(not(target_os = "ios"))]
@@ -1533,6 +1568,8 @@ pub async fn get_key(sync: bool) -> String {
         let mut options = crate::ipc::get_options_async().await;
         options.remove("key").unwrap_or_default()
     };
+    
+    // PRIORITY 4: Default RS_PUB_KEY
     if key.is_empty() {
         key = config::RS_PUB_KEY.to_owned();
     }
