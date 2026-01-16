@@ -15,6 +15,7 @@ env:
   RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
   API_SERVER: ${{ secrets.API_SERVER }}
   RS_PASSWORD: ${{ secrets.RS_PASSWORD }}
+  RS_FORCE_RELAY: ${{ secrets.RS_FORCE_RELAY }}
 
 jobs:
   build-x86-sciter:
@@ -94,6 +95,7 @@ jobs:
           RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
           API_SERVER: ${{ secrets.API_SERVER }}
           RS_PASSWORD: ${{ secrets.RS_PASSWORD }}
+          RS_FORCE_RELAY: ${{ secrets.RS_FORCE_RELAY }}
         run: |
           # Debug: проверяем что переменные установлены
           echo "Checking environment variables..."
@@ -101,12 +103,14 @@ jobs:
           echo "RS_PUB_KEY is set: $(if [ -n "$RS_PUB_KEY" ]; then echo 'YES'; else echo 'NO'; fi)"
           echo "API_SERVER is set: $(if [ -n "$API_SERVER" ]; then echo 'YES'; else echo 'NO'; fi)"
           echo "RS_PASSWORD is set: $(if [ -n "$RS_PASSWORD" ]; then echo 'YES'; else echo 'NO'; fi)"
+          echo "RS_FORCE_RELAY is set: $(if [ -n "$RS_FORCE_RELAY" ]; then echo 'YES'; else echo 'NO'; fi)"
           
           # Явно экспортируем переменные для cargo
           export RENDEZVOUS_SERVER="$RENDEZVOUS_SERVER"
           export RS_PUB_KEY="$RS_PUB_KEY"
           export API_SERVER="$API_SERVER"
           export RS_PASSWORD="$RS_PASSWORD"
+          export RS_FORCE_RELAY="$RS_FORCE_RELAY"
           
           python3 res/inline-sciter.py
           # Patch sciter x86
