@@ -1,0 +1,176 @@
+name: Build Only x86 Sciter Version
+
+on:
+  workflow_dispatch:
+  # Можно раскомментировать для автоматической сборки по расписанию
+  # schedule:
+  #   - cron: "0 0 * * *"
+
+env:
+  SCITER_RUST_VERSION: "1.75"
+  VERSION: "1.4.5"
+  VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
+  UPLOAD_ARTIFACT: "true"
+  RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+  RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+  API_SERVER: ${{ secrets.API_SERVER }}
+  RS_PASSWORD: ${{ secrets.RS_PASSWORD }}
+  RS_FORCE_RELAY: ${{ secrets.RS_FORCE_RELAY }}
+
+jobs:
+  build-x86-sciter:
+    name: Build x86 Sciter (i686-pc-windows-msvc)
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - {
+              target: i686-pc-windows-msvc,
+              os: windows-2022,
+              arch: x86,
+              vcpkg-triplet: x86-windows-static,
+            }
+    steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install LLVM and Clang
+        uses: rustdesk-org/install-llvm-action-32bit@master
+        with:
+          version: "15.0.6"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly-2023-10-13-${{ matrix.job.target }}
+          targets: ${{ matrix.job.target }}
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ matrix.job.os }}-sciter
+
+      - name: Setup vcpkg with Github Actions binary cache
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: C:\vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies
+        env:
+          VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
+        run: |
+          if ! $VCPKG_ROOT/vcpkg \
+            install \
+            --triplet ${{ matrix.job.vcpkg-triplet }} \
+            --x-install-root="$VCPKG_ROOT/installed"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"
+              echo "======"
+              cat "$_1"
+              echo "======"
+              echo ""
+            done
+            exit 1
+          fi
+          head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
+        shell: bash
+
+      - name: Build rustdesk x86 sciter
+        id: build
+        shell: bash
+        env:
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+          API_SERVER: ${{ secrets.API_SERVER }}
+          RS_PASSWORD: ${{ secrets.RS_PASSWORD }}
+          RS_FORCE_RELAY: ${{ secrets.RS_FORCE_RELAY }}
+        run: |
+          # Debug: проверяем что переменные установлены
+          echo "Checking environment variables..."
+          echo "RENDEZVOUS_SERVER is set: $(if [ -n "$RENDEZVOUS_SERVER" ]; then echo 'YES'; else echo 'NO'; fi)"
+          echo "RS_PUB_KEY is set: $(if [ -n "$RS_PUB_KEY" ]; then echo 'YES'; else echo 'NO'; fi)"
+          echo "API_SERVER is set: $(if [ -n "$API_SERVER" ]; then echo 'YES'; else echo 'NO'; fi)"
+          echo "RS_PASSWORD is set: $(if [ -n "$RS_PASSWORD" ]; then echo 'YES'; else echo 'NO'; fi)"
+          echo "RS_FORCE_RELAY is set: $(if [ -n "$RS_FORCE_RELAY" ]; then echo 'YES'; else echo 'NO'; fi)"
+          
+          # Явно экспортируем переменные для cargo
+          export RENDEZVOUS_SERVER="$RENDEZVOUS_SERVER"
+          export RS_PUB_KEY="$RS_PUB_KEY"
+          export API_SERVER="$API_SERVER"
+          export RS_PASSWORD="$RS_PASSWORD"
+          export RS_FORCE_RELAY="$RS_FORCE_RELAY"
+          
+          python3 res/inline-sciter.py
+          # Patch sciter x86
+          sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
+          cargo build --features inline,vram,hwcodec --release --bins
+          mkdir -p ./Release
+          mv ./target/release/rustdesk.exe ./Release/rustdesk.exe
+          curl -LJ -o ./Release/sciter.dll https://github.com/c-smile/sciter-sdk/raw/master/bin.win/x32/sciter.dll
+          echo "output_folder=./Release" >> $GITHUB_OUTPUT
+          
+          # Download and add usbmmidd_v2
+          curl -LJ -o ./usbmmidd_v2.zip https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip
+          unzip usbmmidd_v2.zip
+          rm -rf ./usbmmidd_v2/deviceinstaller.exe ./usbmmidd_v2/usbmmidd.bat
+          mv ./usbmmidd_v2 ./Release || true
+
+      - name: find Runner.res
+        continue-on-error: true
+        shell: bash
+        run: |
+          runner_res=$(find . -name "Runner.res");
+          if [ "$runner_res" == "" ]; then
+            echo "Runner.res: not found";
+          else
+            echo "Runner.res: $runner_res";
+            cp $runner_res ./libs/portable/Runner.res;
+            echo "list ./libs/portable/Runner.res";
+            ls -l ./libs/portable/Runner.res;
+          fi
+
+      - name: Upload unsigned
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
+          path: Release
+
+      - name: Build self-extracted executable
+        shell: bash
+        run: |
+          sed -i '/dpiAware/d' res/manifest.xml
+          pushd ./libs/portable
+          pip3 install -r requirements.txt
+          python3 ./generate.py -f ../../Release/ -o . -e ../../Release/rustdesk.exe
+          popd
+          mkdir -p ./SignOutput
+          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.exe
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v1
+        if: env.UPLOAD_ARTIFACT == 'true'
+        with:
+          prerelease: true
+          tag_name: x86-sciter-build
+          files: |
+            ./SignOutput/rustdesk-*.exe
+
+      - name: Upload final artifact
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-${{ env.VERSION }}-x86-sciter
+          path: ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.exe
