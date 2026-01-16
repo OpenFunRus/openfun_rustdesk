@@ -92,20 +92,36 @@ fn main() {
     }
     
     // Pass environment variables to rustc for option_env!() macro
+    eprintln!("[BUILD.RS DEBUG] Checking environment variables...");
     if let Ok(server) = std::env::var("RENDEZVOUS_SERVER") {
+        eprintln!("[BUILD.RS] RENDEZVOUS_SERVER found: {} chars", server.len());
         println!("cargo:rustc-env=RENDEZVOUS_SERVER={}", server);
+    } else {
+        eprintln!("[BUILD.RS] RENDEZVOUS_SERVER: NOT SET");
     }
     if let Ok(key) = std::env::var("RS_PUB_KEY") {
+        eprintln!("[BUILD.RS] RS_PUB_KEY found: {} chars", key.len());
         println!("cargo:rustc-env=RS_PUB_KEY={}", key);
+    } else {
+        eprintln!("[BUILD.RS] RS_PUB_KEY: NOT SET");
     }
     if let Ok(api) = std::env::var("API_SERVER") {
+        eprintln!("[BUILD.RS] API_SERVER found: {} chars", api.len());
         println!("cargo:rustc-env=API_SERVER={}", api);
+    } else {
+        eprintln!("[BUILD.RS] API_SERVER: NOT SET");
     }
     if let Ok(pwd) = std::env::var("RS_PASSWORD") {
+        eprintln!("[BUILD.RS] RS_PASSWORD found: {} chars", pwd.len());
         println!("cargo:rustc-env=RS_PASSWORD={}", pwd);
+    } else {
+        eprintln!("[BUILD.RS] RS_PASSWORD: NOT SET");
     }
     if let Ok(relay) = std::env::var("RS_FORCE_RELAY") {
+        eprintln!("[BUILD.RS] RS_FORCE_RELAY found: {}", relay);
         println!("cargo:rustc-env=RS_FORCE_RELAY={}", relay);
+    } else {
+        eprintln!("[BUILD.RS] RS_FORCE_RELAY: NOT SET");
     }
     
     println!("cargo:rerun-if-changed=build.rs");
