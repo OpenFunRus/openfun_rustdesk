@@ -1143,21 +1143,6 @@ pub fn update_temporary_password() -> ResultType<()> {
 }
 
 pub fn get_permanent_password() -> String {
-    // ПРИОРИТЕТ 1: ENV переменная при билде (зашито, не изменить!)
-    // Используем compile-time ENV
-    let env_password = option_env!("RS_PASSWORD").unwrap_or("");
-    if !env_password.is_empty() {
-        log::info!("Using permanent password from build ENV (RS_PASSWORD)");
-        return env_password.to_owned();
-    }
-    // Если нет compile-time, пробуем runtime ENV
-    if let Ok(runtime_password) = std::env::var("RS_PASSWORD") {
-        if !runtime_password.is_empty() {
-            log::info!("Using permanent password from runtime ENV (RS_PASSWORD)");
-            return runtime_password;
-        }
-    }
-    // ПРИОРИТЕТ 2: Конфиг файл (только если ENV не установлена)
     if let Ok(Some(v)) = get_config("permanent-password") {
         Config::set_permanent_password(&v);
         v
@@ -1173,11 +1158,8 @@ pub fn get_fingerprint() -> String {
 }
 
 pub fn set_permanent_password(v: String) -> ResultType<()> {
-    // ЗАЩИТА: НЕ сохраняем пароль в конфиг!
-    // Чтобы кассиры НЕ могли украсть пароль!
-    // Пароль ВСЕГДА читается из ENV (зашит в EXE)
-    log::info!("Permanent password NOT saved to config (security) - using ENV only");
-    Ok(())
+    Config::set_permanent_password(&v);
+    set_config("permanent-password", v)
 }
 
 #[cfg(feature = "flutter")]
@@ -1301,18 +1283,6 @@ pub async fn get_option_async(key: &str) -> String {
 }
 
 pub fn set_option(key: &str, value: &str) {
-    // ЗАЩИТА: Проверяем не является ли это защищённой настройкой
-    let is_protected = matches!(
-        key,
-        "custom-rendezvous-server" | "relay-server" | "api-server" | "key"
-    );
-    
-    if is_protected {
-        log::info!("Protected setting '{}' NOT saved to config (security)", key);
-        return; // НЕ сохраняем!
-    }
-    
-    // Сохраняем ТОЛЬКО безопасные настройки
     let mut options = get_options();
     if value.is_empty() {
         options.remove(key);
@@ -1324,31 +1294,13 @@ pub fn set_option(key: &str, value: &str) {
 
 #[tokio::main(flavor = "current_thread")]
 pub async fn set_options(value: HashMap<String, String>) -> ResultType<()> {
-    // ЗАЩИТА: НЕ сохраняем настройки сервера, ключ в .toml
-    // Чтобы кассиры НЕ могли украсть адрес сервера и ключ!
-    let mut filtered_value = value.clone();
-    
-    // Удаляем защищённые настройки (всегда, независимо от ENV!)
-    let protected_keys = [
-        "custom-rendezvous-server",  // Адрес сервера
-        "relay-server",               // Relay сервер
-        "api-server",                 // API сервер
-        "key",                        // Приватный ключ
-    ];
-    
-    for key in protected_keys {
-        if filtered_value.remove(key).is_some() {
-            log::info!("Protected setting '{}' NOT saved to config (security)", key);
-        }
-    }
-    
-    // Сохраняем ТОЛЬКО безопасные настройки (stop-service, local-ip-addr и т.д.)
     let _nat = CheckTestNatType::new();
     if let Ok(mut c) = connect(1000, "").await {
-        c.send(&Data::Options(Some(filtered_value.clone()))).await?;
+        c.send(&Data::Options(Some(value.clone()))).await?;
+        // do not put below before connect, because we need to check should_exit
         c.next_timeout(1000).await.ok();
     }
-    Config::set_options(filtered_value);
+    Config::set_options(value);
     Ok(())
 }
 

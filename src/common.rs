@@ -1029,20 +1029,17 @@ pub fn is_setup(name: &str) -> bool {
 }
 
 pub fn get_custom_rendezvous_server(custom: String) -> String {
-    // ПРИОРИТЕТ 1: ENV переменная при билде (зашито, не изменить!)
-    if !config::PROD_RENDEZVOUS_SERVER.read().unwrap().is_empty() {
-        return config::PROD_RENDEZVOUS_SERVER.read().unwrap().clone();
-    }
-    // ПРИОРИТЕТ 2: Имя EXE файла (только если ENV не установлена)
     #[cfg(windows)]
     if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
         if !lic.host.is_empty() {
             return lic.host.clone();
         }
     }
-    // ПРИОРИТЕТ 3: Конфиг файл (только если ENV не установлена)
     if !custom.is_empty() {
         return custom;
+    }
+    if !config::PROD_RENDEZVOUS_SERVER.read().unwrap().is_empty() {
+        return config::PROD_RENDEZVOUS_SERVER.read().unwrap().clone();
     }
     "".to_owned()
 }
@@ -1066,21 +1063,18 @@ pub fn get_api_server(api: String, custom: String) -> String {
 }
 
 fn get_api_server_(api: String, custom: String) -> String {
-    // ПРИОРИТЕТ 1: ENV переменная при билде (зашито, не изменить!)
-    let api_env = option_env!("API_SERVER").unwrap_or_default();
-    if !api_env.is_empty() {
-        return api_env.into();
-    }
-    // ПРИОРИТЕТ 2: Имя EXE файла (только если ENV не установлена)
     #[cfg(windows)]
     if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
         if !lic.api.is_empty() {
             return lic.api.clone();
         }
     }
-    // ПРИОРИТЕТ 3: Конфиг файл (только если ENV не установлена)
     if !api.is_empty() {
         return api.to_owned();
+    }
+    let api = option_env!("API_SERVER").unwrap_or_default();
+    if !api.is_empty() {
+        return api.into();
     }
     let s0 = get_custom_rendezvous_server(custom);
     if !s0.is_empty() {
@@ -1524,27 +1518,24 @@ pub fn decode64<T: AsRef<[u8]>>(input: T) -> Result<Vec<u8>, base64::DecodeError
 }
 
 pub async fn get_key(sync: bool) -> String {
-    // ПРИОРИТЕТ 1: ENV переменная при билде (зашито, не изменить!)
-    if !config::RS_PUB_KEY.is_empty() {
-        return config::RS_PUB_KEY.to_owned();
-    }
-    // ПРИОРИТЕТ 2: Имя EXE файла (только если ENV не установлена)
     #[cfg(windows)]
     if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
         if !lic.key.is_empty() {
             return lic.key;
         }
     }
-    // ПРИОРИТЕТ 3: Конфиг файл (только если ENV не установлена)
     #[cfg(target_os = "ios")]
-    let key = Config::get_option("key");
+    let mut key = Config::get_option("key");
     #[cfg(not(target_os = "ios"))]
-    let key = if sync {
+    let mut key = if sync {
         Config::get_option("key")
     } else {
         let mut options = crate::ipc::get_options_async().await;
         options.remove("key").unwrap_or_default()
     };
+    if key.is_empty() {
+        key = config::RS_PUB_KEY.to_owned();
+    }
     key
 }
 

@@ -1,47 +1,37 @@
 html {
-    background-color: #182433;
-    width: 320px;
-    height: 200px;
+    background-color: transparent;
 }
 
 body {
     overflow: hidden;
-    background-color: #182433;
-    color: #f8fafc;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 @media platform != "OSX" {
     body {
-        border-top: #2d3748 solid 1px;
+        border-top: color(border) solid 1px;
     }
 }
 
 .title {
     font-size: 1.4em;
-    color: #f8fafc;
-    font-weight: 600;
 }
 
 .app {
     flow: horizontal;
     size: *;
-    background: #182433;
-    color: #f8fafc;
 }
 
 .lighter-text {
-    color: #94a3b8;
-    font-size: 0.85em;
+    color: color(lighter-text);
+    font-size: 0.9em;
 }
 
 .left-pane {
-    width: 320px;
-    height: 200px;
-    background: #182433;
-    border-right: none;
+    width: 200px;
+    height: *;
+    background: color(bg);
+    border-right: color(border) 1px solid;
     position: relative;
-    overflow: hidden;
 }
 
 #ab .left-pane {
@@ -59,8 +49,8 @@ body {
 
 .left-pane > div:nth-child(1) {
     border-spacing: 1em;
-    padding: 16px;
-    padding-bottom: 50px; /* reserve space for bottom connect-status */
+    padding: 20px;
+    padding-bottom: 60px; /* reserve space for bottom connect-status */
 }
 
 .left-pane > div.connect-status {
@@ -145,29 +135,23 @@ span.clear-input:hover {
 
 .your-desktop {
     border-spacing: 0.5em;
-    border-left: #206bc4 solid 2px;
+    border-left: color(accent) solid 2px;
     padding-left: 0.5em;
-    background: transparent;
 }
 
 .your-desktop input[type=text] {
     padding: 0;
     border: none;
-    height: 1.8em;
-    background: transparent;
-    color: #206bc4;
-    font-weight: bold;
-    font-size: 1.5em;
+    height: 1.5em;
 }
 
 .your-desktop > div {
-    color: #cbd5e1;
+    color: color(light-text);
 }
 
 .right-pane {
-    display: none;
     size: *;
-    background: #0f172a;
+    background: color(gray-bg);
 }
 
 .right-content {
@@ -206,11 +190,9 @@ span.clear-input:hover {
 
 div.connect-status {
     left: 240px;
-    border-top: #2d3748 solid 1px;
+    border-top: color(border) solid 1px;
     width: 100%;
-    padding: 0.75em;
-    background: #1d273b;
-    color: #cbd5e1;
+    padding: 1em;
 }
 
 div.connect-status > span.connect-status-icon {
@@ -227,15 +209,15 @@ div.connect-status > span.link {
 }
 
 span.connect-status-1 {
-    background: #d63939;
+    background: #e04f5f;
 }
 
 span.connect-status1 {
-    background: #2fb344;
+    background: #32bea6;
 }
 
 span.connect-status0 {
-    background: #f59f00;
+    background: #F5853B;
 }
 
 div.recent-sessions-content {
@@ -334,7 +316,7 @@ svg#menu {
     background: none;
     padding: 0.5em;
     margin: 0.5em;
-    color: #94a3b8;
+    color: color(light-text);
 }
 
 .remote-session-list svg#menu {
@@ -342,26 +324,24 @@ svg#menu {
 }
 
 svg#menu:hover {
-    color: #f8fafc;
-    border-radius: 0.5em;
-    background: #1d273b;
+    color: color(text);
+    border-radius: 1em;
+    background: color(gray-bg);
 }
 
 svg#edit:hover {
-    color: #f8fafc;
+    color: color(text);
 }
 
 svg#edit {
     display: inline-block;
-    color: #94a3b8;
 }
 
 div.install-me, div.trust-me {
     margin-top: 0.5em;
-    padding: 16px;
-    color: #f8fafc;
-    background: #206bc4;
-    border-radius: 0.5em;
+    padding: 20px;
+    color: white;
+    background: linear-gradient(left,#e242bc,#f4727c);
 }
 
 div.trust-me > div:nth-child(1),
@@ -421,22 +401,22 @@ div.remote-session svg#menu {
     height: 2em;
     line-height: 2em;
     text-align: center;
-    font-weight: 600;
-    font-size: 0.95em;
-    margin-top: 0.75em;
-    border: #f8fafc solid 1px;
-    border-radius: 0.375em;
+    font-weight: bold;
+    font-size: 1em;
+    margin-top: 1em;
+    border-color: white;
+    border: 1px;
     background: none;
-    color: #f8fafc;
+    color: white;
 }
 
 svg#refresh-password {
     display: inline-block;
-    stroke: #94a3b8;
+    stroke:#ddd;
 }
 
 svg#refresh-password:hover {
-    stroke: #206bc4;
+    stroke:color(text);
 }
 
 li:disabled, li:disabled:hover {
@@ -446,36 +426,12 @@ li:disabled, li:disabled:hover {
 }
 
 .grey-text {
-    color: #64748b !important;
+    color: #888 !important;
 }
 
 input.grey-text,
 textarea.grey-text {
-    color: #64748b !important;
-}
-
-.left-pane > div:nth-child(1) .id-label-custom {
-    font-size: 1.1em;
-    color: #cbd5e1;
-    margin-bottom: 5px;
-}
-
-.generating-text {
-    font-weight: bold;
-    color: #206bc4;
-    font-size: 1.5em;
-    background: transparent;
-    padding: 8px 0;
-}
-
-/* Footer в connect-status */
-div.connect-status::after {
-    content: "RustDesk by OpenFun 2026 ver. 2.0";
-    display: block;
-    font-size: 0.85em;
-    color: #64748b;
-    margin-top: 8px;
-    text-align: left;
+    color: #888 !important;
 }
 
 @media platform == "OSX" {

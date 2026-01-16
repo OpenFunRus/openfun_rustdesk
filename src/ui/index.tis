@@ -20,8 +20,11 @@ const disable_change_permanent_password = handler.get_builtin_option("disable-ch
 const disable_change_id = handler.get_builtin_option("disable-change-id") == "Y";
 
 // html min-width, min-height not working on mac, below works for all
-view.windowMinSize = (320, 200);
-view.windowMaxSize = (320, 200);
+if (incoming_only) {
+  view.windowMinSize = (scaleIt(incoming_only_width), scaleIt((handler.is_installed() || disable_installation) ? 300 : 390));
+} else {
+  view.windowMinSize = (scaleIt(560), scaleIt(300));
+}
 
 var app;
 var tmp = handler.get_connect_status();
@@ -681,27 +684,33 @@ class App: Reactor.Component
         var is_can_screen_recording = handler.is_can_screen_recording(false);
         return
             <div .app>
-                <div .left-pane>
+                    <div .left-pane style={incoming_only ? "width:*" : ""}>
                     <div>
-                        <div .title>{translate('Your Desktop')}</div>
-                        <div .lighter-text style="display:none">{translate('desk_tip')}</div>
-                        <div .your-desktop>
-                            <div style="display:none"><MyIdMenu /></div>
-                            <div .id-label-custom>ID</div>
-                            {key_confirmed ? <input type="text" .readonly-text readonly value={formatId(get_id())}/> : <div .generating-text>{translate("Generating ...")}</div>}
+                        {is_custom_client && handler.get_builtin_option("hide-powered-by-me") != "Y" ? <div .link #powered-by style="opacity:0.5;font-size:0.8em;text-decoration:underline">{translate('powered_by_me')}</div> : ""}
+                        <div .title style="flow:horizontal; position:relative; height:1.6em; line-height:1.6em">
+                            <span>{translate('Your Desktop')}</span>
+                            {outgoing_only ? <span .link #open-settings style="position:absolute; right:0; bottom:0; transform:scale(0.6); transform-origin:right bottom; opacity:0.85">{svg_menu}</span> : ""}
                         </div>
-                        <div .password style="display:none"><PasswordArea /></div>
+                        <div .lighter-text>{outgoing_only ? translate('outgoing_only_desk_tip') : translate('desk_tip')}</div>
+                        {outgoing_only ? <div style="position:absolute; left:-10000px; top:-10000px; width:0; height:0; overflow:hidden"><MyIdMenu /></div> : ""}
+                        {!outgoing_only && <div .your-desktop>
+                            <MyIdMenu />
+                            {key_confirmed ? <input type="text" readonly value={formatId(get_id())}/> : translate("Generating ...")}
+                        </div>}
+                        {!outgoing_only && <PasswordArea />}
                     </div>
-                    {(!is_win || handler.is_installed() || disable_installation) ? "" : <div style="display:none"><InstallMe /></div>}
-                    {software_update_url && !disable_installation ? <div style="display:none"><UpdateMe /></div> : ""}
-                    {is_win && handler.is_installed() && !software_update_url && handler.is_installed_lower_version() && !disable_installation ? <div style="display:none"><UpgradeMe /></div> : ""}
-                    {is_can_screen_recording ? "": <div style="display:none"><CanScreenRecording /></div>}
-                    {is_can_screen_recording && !handler.is_process_trusted(false) ? <div style="display:none"><TrustMe /></div> : ""}
-                    {!service_stopped && is_can_screen_recording && handler.is_process_trusted(false) && handler.is_installed() && !handler.is_installed_daemon(false) ? <div style="display:none"><InstallDaemon /></div> : ""}
-                    {system_error ? <div style="display:none"><SystemError /></div> : ""}
-                    <ConnectStatus @{this.connect_status} />
+                    {(!is_win || handler.is_installed() || disable_installation) ? "" : <InstallMe />}
+                    {software_update_url && !disable_installation ? <UpdateMe /> : ""}
+                    {is_win && handler.is_installed() && !software_update_url && handler.is_installed_lower_version() && !disable_installation ? <UpgradeMe /> : ""}
+                    {is_can_screen_recording ? "": <CanScreenRecording />}
+                    {is_can_screen_recording && !handler.is_process_trusted(false) ? <TrustMe /> : ""}
+                    {!service_stopped && is_can_screen_recording && handler.is_process_trusted(false) && handler.is_installed() && !handler.is_installed_daemon(false) ? <InstallDaemon /> : ""}
+                    {system_error ? <SystemError /> : ""}
+                    {!system_error && handler.is_login_wayland() && !handler.current_is_wayland() ? <FixWayland /> : ""}
+                    {!system_error && handler.current_is_wayland() ? <ModifyDefaultLogin /> : ""}
+                    {incoming_only ? <ConnectStatus @{this.connect_status} /> : ""}
                 </div>
-                <div .right-pane style="display:none">
+                {!incoming_only && <div .right-pane>
                     <div .right-content>
                         <div .card-connect>
                             <div .title>{translate('Control Remote Desktop')}</div>
@@ -713,7 +722,9 @@ class App: Reactor.Component
                         </div>
                         <MultipleSessions @{this.multipleSessions} />
                     </div>
-                </div>
+                    {!outgoing_only ? <ConnectStatus @{this.connect_status} /> : ""}
+                </div>}
+                <div #overlay style="position: absolute;size:*;background:black;opacity:0.5;display:none" />
             </div>; 
     }
 
@@ -1282,7 +1293,20 @@ function self.closing() {
 }
 
 function self.ready() {
-    centerize(320, 200);
+    var r = handler.get_size();
+    if (isReasonableSize(r) && r[2] > 0) {
+        var (sx, sy, sw, sh) = view.screenBox(#workarea, #rectw);
+        if (r[2] >= sw && r[3] >= sh) {
+            self.timer(1ms, function() { view.windowState = View.WINDOW_MAXIMIZED; });
+        } else {
+            view.move(r[0], r[1], incoming_only ? scaleIt(incoming_only_width) : r[2], r[3]);
+        }
+    } else {
+        centerize(scaleIt(incoming_only ? incoming_only_width : 800), scaleIt(incoming_only ? 390 : 600));
+    }
+    if (!handler.get_remote_id()) {
+        view.focus = $(#remote_id);
+    }
     refreshCurrentUser();
     updateTheme();
 }

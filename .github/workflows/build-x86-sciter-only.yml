@@ -85,25 +85,7 @@ jobs:
       - name: Build rustdesk x86 sciter
         id: build
         shell: bash
-        env:
-          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
-          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
-          API_SERVER: ${{ secrets.API_SERVER }}
-          RS_PASSWORD: ${{ secrets.RS_PASSWORD }}
         run: |
-          # Debug: проверяем что переменные установлены
-          echo "Checking environment variables..."
-          echo "RENDEZVOUS_SERVER is set: $(if [ -n "$RENDEZVOUS_SERVER" ]; then echo 'YES'; else echo 'NO'; fi)"
-          echo "RS_PUB_KEY is set: $(if [ -n "$RS_PUB_KEY" ]; then echo 'YES'; else echo 'NO'; fi)"
-          echo "API_SERVER is set: $(if [ -n "$API_SERVER" ]; then echo 'YES'; else echo 'NO'; fi)"
-          echo "RS_PASSWORD is set: $(if [ -n "$RS_PASSWORD" ]; then echo 'YES'; else echo 'NO'; fi)"
-          
-          # Явно экспортируем переменные для cargo
-          export RENDEZVOUS_SERVER="$RENDEZVOUS_SERVER"
-          export RS_PUB_KEY="$RS_PUB_KEY"
-          export API_SERVER="$API_SERVER"
-          export RS_PASSWORD="$RS_PASSWORD"
-          
           python3 res/inline-sciter.py
           # Patch sciter x86
           sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
