@@ -1845,7 +1845,7 @@ impl LoginConfigHandler {
         self.supported_encoding = Default::default();
         self.restarting_remote_device = false;
         self.force_relay =
-            config::HARDCODED_FORCE_RELAY
+            (!config::HARDCODED_FORCE_RELAY.is_empty() && config::HARDCODED_FORCE_RELAY == "1")
                 || config::option2bool("force-always-relay", &self.get_option("force-always-relay"))
                 || force_relay
                 || use_ws()

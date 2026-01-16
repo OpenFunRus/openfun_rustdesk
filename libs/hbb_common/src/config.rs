@@ -92,12 +92,10 @@ pub const HARDCODED_PASSWORD: &str = match option_env!("RS_PASSWORD") {
     None => "",
 };
 // Force all connections through relay server (no direct P2P attempts)
-pub const HARDCODED_FORCE_RELAY: bool = match option_env!("RS_FORCE_RELAY") {
-    Some(v) => match v {
-        "1" | "true" | "TRUE" | "True" | "yes" | "YES" => true,
-        _ => false,
-    },
-    None => false,
+// Note: Set to "1" to enable
+pub const HARDCODED_FORCE_RELAY: &str = match option_env!("RS_FORCE_RELAY") {
+    Some(v) => v,
+    None => "",
 };
 
 #[cfg(target_os = "android")]
